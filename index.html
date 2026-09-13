@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>КП «Лама-Вилладж» — план участков</title>
+<style>
+  :root{--paper:#f2ede1;--ink:#2b2b26;--line:#8c8368;}
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;background:#1c1a16;font-family:-apple-system,"Segoe UI",Roboto,"PT Sans",Arial,sans-serif;color:var(--ink);overflow:hidden;}
+  header{position:fixed;left:0;right:0;top:0;height:52px;background:var(--paper);border-bottom:3px solid var(--ink);
+          display:flex;align-items:center;justify-content:space-between;padding:0 14px;z-index:5;
+          padding-top:env(safe-area-inset-top);height:calc(52px + env(safe-area-inset-top));}
+  header h1{font-size:15px;margin:0;font-weight:700;letter-spacing:.3px;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  header .ver{font-size:11px;color:#6b6555;white-space:nowrap;margin-left:10px;}
+  #map{position:fixed;left:0;right:0;top:calc(52px + env(safe-area-inset-top));bottom:0;background:#2f4030;}
+  #map svg{width:100%;height:100%;display:block;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;}
+  #map svg.dragging{cursor:grabbing;}
+  #map svg .parcel{cursor:pointer;}
+  #map svg .parcel.sel{fill:#d9c9a0;fill-opacity:.85;}
+  .ctl{position:fixed;right:12px;bottom:calc(18px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:8px;z-index:6;}
+  .ctl button{width:44px;height:44px;border:1.5px solid var(--ink);background:var(--paper);color:var(--ink);font:700 20px/1 Arial,sans-serif;
+               border-radius:6px;box-shadow:0 2px 5px rgba(0,0,0,.35);padding:0;cursor:pointer;}
+  .ctl button:active{background:#ded2ac;}
+  .zoom{position:fixed;left:12px;bottom:calc(18px + env(safe-area-inset-bottom));font-size:12px;background:rgba(242,237,225,.92);
+         border:1px solid var(--ink);padding:4px 8px;border-radius:4px;z-index:6;pointer-events:none;}
+  .legend{position:fixed;left:12px;top:calc(64px + env(safe-area-inset-top));width:min(360px,calc(100vw - 24px));max-height:calc(100vh - 160px);
+           overflow:auto;background:rgba(242,237,225,.97);border:1.5px solid var(--ink);border-radius:6px;padding:10px 12px;z-index:7;display:none;font-size:12.5px;}
+  .legend.open{display:block;}
+  .legend h2{font-size:12px;text-transform:uppercase;letter-spacing:1px;margin:0 0 8px;border-bottom:1.5px solid var(--ink);padding-bottom:4px;}
+  .legend-row{display:flex;align-items:center;gap:8px;margin-bottom:5px;line-height:1.3;}
+  .swatch{width:16px;height:12px;flex-shrink:0;border:1px solid var(--ink);}
+  .swatch.line{height:0;border:none;border-top:3px solid;}
+  .legend .foot{margin-top:8px;font-size:11px;color:#6b6555;}
+  .pop{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(74px + env(safe-area-inset-bottom));max-width:min(420px,calc(100vw - 90px));
+        background:var(--paper);border:1.5px solid var(--ink);border-radius:6px;padding:8px 12px;font-size:13px;z-index:6;display:none;box-shadow:0 3px 8px rgba(0,0,0,.35);}
+  .pop.open{display:block;}
+  .pop b{display:block;font-size:14px;margin-bottom:2px;}
+  .pop .x{position:absolute;right:6px;top:2px;border:none;background:none;font-size:18px;cursor:pointer;color:#6b6555;}
+  .finder{position:fixed;right:12px;top:calc(64px + env(safe-area-inset-top));z-index:6;display:flex;gap:6px;}
+  .finder input{width:120px;height:36px;border:1.5px solid var(--ink);border-radius:6px;padding:0 8px;font-size:14px;background:var(--paper);}
+  .finder button{height:36px;border:1.5px solid var(--ink);border-radius:6px;background:var(--paper);font-size:14px;padding:0 10px;cursor:pointer;}
+</style>
+</head>
+<body>
+<header>
+  <h1>КП «Лама-Вилладж» — план участков</h1>
+  <span class="ver">v0.53 — линии и подписи в масштабе плана</span>
+</header>
+<div id="map">
+  <svg id="map-svg" preserveAspectRatio="xMidYMid meet" viewBox="0 0 3067 1369" xmlns="http://www.w3.org/2000/svg">
+            <rect x="0" y="0" width="3067" height="1369" fill="#f2ede1"/>
+            <!-- Заливка леса: фон на весь холст -->
+            <rect x="0" y="0" width="3067" height="1369" fill="#46603f"/>
+            <!-- Заливка поля: область между западной кромкой леса, дорогой и южной границей КП -->
+            <polygon points="572.8,933.6 573.9,1013.0 591.4,1098.9 608.8,1162.4 628.8,1200.0 660.7,1226.4 713.7,1259.5 870.3,1301.3 898.6,1306.8 916.9,1313.5 931.4,1326.9 943.8,1346.6 961.9,1361.1 966.6,1379.2 971.1,1400.9 974.8,1425.4 975.0,1453.2 984.3,1504.4 994.0,1540.9 1019.2,1592.9 1044.3,1628.6 1068.8,1679.5 1106.6,1763.2 1156.4,1860.4 1176.3,1895.2 1189.2,1992.3 1196.6,2077.4 1190.5,2478.3 1683.9,1458.6 1689.4,1447.3 1694.8,1436.0 1700.3,1424.8 1706.8,1411.7 1715.8,1400.1 1723.6,1390.3 1731.4,1380.5 1739.1,1370.7 1746.9,1360.9 1754.7,1351.1 1762.5,1341.4 1770.3,1331.6 1778.0,1321.8 1785.8,1312.0 1794.6,1301.3 1804.3,1291.8 1813.2,1283.0 1822.1,1274.3 1829.6,1266.6 1836.8,1257.4 1844.5,1247.5 1852.6,1237.2 1863.1,1226.3 1872.3,1217.9 1881.5,1209.5 1890.5,1201.2 1899.2,1192.7 1908.2,1184.0 1917.2,1175.3 1926.1,1166.6 1935.1,1157.9 1944.1,1149.1 1953.0,1140.4 1962.0,1131.7 1971.0,1123.0 1979.9,1114.3 1988.9,1105.6 1997.9,1096.9 2006.8,1088.2 2015.8,1079.5 2025.3,1071.3 2035.0,1063.4 2044.7,1055.4 2053.9,1046.9 2062.8,1038.1 2071.6,1029.3 2080.5,1020.5 2089.3,1011.7 2012.2,1007.7 1569.4,921.1 1126.7,884.7 613.7,801.4" fill="#d9cf9e" fill-opacity="0.85"/>
+            <!-- Лес между кромкой-2, южной границей КП (7–8) и дорогой — поверх поля -->
+            <polygon points="1126.7,884.7 1116.2,978.7 1139.1,1016.6 1162.7,1048.9 1176.5,1074.2 1186.3,1083.9 1204.7,1086.1 1224.4,1089.8 1310.4,1104.0 1389.3,1127.9 1470.2,1148.8 1530.3,1152.7 1621.4,1163.5 1721.6,1172.1 1834.6,1260.2 1836.8,1257.4 1844.5,1247.5 1852.6,1237.2 1863.1,1226.3 1872.3,1217.9 1881.5,1209.5 1890.5,1201.2 1899.2,1192.7 1908.2,1184.0 1917.2,1175.3 1926.1,1166.6 1935.1,1157.9 1944.1,1149.1 1953.0,1140.4 1962.0,1131.7 1971.0,1123.0 1979.9,1114.3 1988.9,1105.6 1997.9,1096.9 2006.8,1088.2 2015.8,1079.5 2025.3,1071.3 2035.0,1063.4 2044.7,1055.4 2053.9,1046.9 2062.8,1038.1 2071.6,1029.3 2080.5,1020.5 2089.3,1011.7 2012.2,1007.7 1569.4,921.1" fill="#46603f"/>
+            <!-- Кромка леса / поля по 28 GPS-точкам -->
+            <polyline points="572.8,933.6 573.9,1013.0 591.4,1098.9 608.8,1162.4 628.8,1200.0 660.7,1226.4 713.7,1259.5 870.3,1301.3 898.6,1306.8 916.9,1313.5 931.4,1326.9 943.8,1346.6 961.9,1361.1 966.6,1379.2 971.1,1400.9 974.8,1425.4 975.0,1453.2 984.3,1504.4 994.0,1540.9 1019.2,1592.9 1044.3,1628.6 1068.8,1679.5 1106.6,1763.2 1156.4,1860.4 1176.3,1895.2 1189.2,1992.3 1196.6,2077.4 1190.0,2514.4" fill="none" stroke="#3f5b3d" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>
+            <text x="1200.0" y="2530.4" class="label-small" font-size="11" fill="#f2ede1">кромка леса</text>
+            <!-- Соединение первой точки западной кромки леса с вершиной 6 КП -->
+            <line x1="572.8" y1="933.6" x2="613.7" y2="801.4" stroke="#3f5b3d" stroke-width="2.6" stroke-linecap="round"/>
+            <!-- Соединение первой точки восточной кромки леса (кромка-2) с вершиной 7 КП -->
+            <line x1="1116.2" y1="978.7" x2="1126.7" y2="884.7" stroke="#3f5b3d" stroke-width="2.6" stroke-linecap="round"/>
+            <!-- Кромка леса-2, продлена отдельным отрезком до дороги -->
+            <polyline points="1116.2,978.7 1139.1,1016.6 1162.7,1048.9 1176.5,1074.2 1186.3,1083.9 1204.7,1086.1 1224.4,1089.8 1310.4,1104.0 1389.3,1127.9 1470.2,1148.8 1530.3,1152.7 1621.4,1163.5 1721.6,1172.1 1834.6,1260.2" fill="none" stroke="#3f5b3d" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>
+            <text x="1731.6" y="1188.1" class="label-small" font-size="11" fill="#f2ede1">кромка леса-2</text>
+            <!-- Река Лама по 20 GPS-точкам русла -->
+            <polyline points="8290.0,1298.3 3052.1,349.2 2998.3,339.5 2991.5,293.0 2932.4,286.0 2908.9,228.1 2867.5,290.5 2825.7,304.1 2822.1,250.7 2831.0,188.9 2809.7,178.9 2758.1,207.3 2720.8,135.8 2654.2,82.9 2541.7,-87.4 2526.5,-152.0 2502.1,-201.8 2514.9,-233.8 2503.2,-251.1 2501.2,-266.4 2499.3,-280.3 1790.4,-5556.1" fill="none" stroke="#8fb8cc" stroke-width="7" stroke-linejoin="round" stroke-linecap="round"/>
+            <polyline points="8290.0,1298.3 3052.1,349.2 2998.3,339.5 2991.5,293.0 2932.4,286.0 2908.9,228.1 2867.5,290.5 2825.7,304.1 2822.1,250.7 2831.0,188.9 2809.7,178.9 2758.1,207.3 2720.8,135.8 2654.2,82.9 2541.7,-87.4 2526.5,-152.0 2502.1,-201.8 2514.9,-233.8 2503.2,-251.1 2501.2,-266.4 2499.3,-280.3 1790.4,-5556.1" fill="none" stroke="#3d7ea6" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+            <g fill="#3d7ea6" stroke="#ffffff" stroke-width="0.7">
+              <circle cx="3052.1" cy="349.2" r="2.6"/>
+              <circle cx="2998.3" cy="339.5" r="2.6"/>
+              <circle cx="2991.5" cy="293.0" r="2.6"/>
+              <circle cx="2932.4" cy="286.0" r="2.6"/>
+              <circle cx="2908.9" cy="228.1" r="2.6"/>
+              <circle cx="2867.5" cy="290.5" r="2.6"/>
+              <circle cx="2825.7" cy="304.1" r="2.6"/>
+              <circle cx="2822.1" cy="250.7" r="2.6"/>
+              <circle cx="2831.0" cy="188.9" r="2.6"/>
+              <circle cx="2809.7" cy="178.9" r="2.6"/>
+              <circle cx="2758.1" cy="207.3" r="2.6"/>
+              <circle cx="2720.8" cy="135.8" r="2.6"/>
+              <circle cx="2654.2" cy="82.9" r="2.6"/>
+              <circle cx="2541.7" cy="-87.4" r="2.6"/>
+              <circle cx="2526.5" cy="-152.0" r="2.6"/>
+              <circle cx="2502.1" cy="-201.8" r="2.6"/>
+              <circle cx="2514.9" cy="-233.8" r="2.6"/>
+              <circle cx="2503.2" cy="-251.1" r="2.6"/>
+              <circle cx="2501.2" cy="-266.4" r="2.6"/>
+              <circle cx="2499.3" cy="-280.3" r="2.6"/>
+            </g>
+            <text x="2770.1" y="199.3" class="label" font-size="12" font-weight="700" fill="#dbeaf2">р. Лама</text>
+            <!-- СНТ «Телефонист»: прямая от асфальта к д1, далее д2, д3 и связка обратно к прямой -->
+            <polygon points="2603.7,318.3 3701.4,820.1 3591.4,1059.7 2843.8,758.9 2968.9,485.2" fill="#e79a2b" fill-opacity="0.72" stroke="#8a5a25" stroke-width="2.0" stroke-linejoin="round"/>
+            <g fill="#8a5a25" stroke="#f2ede1" stroke-width="0.8">
+              <circle cx="3701.4" cy="820.1" r="3.5"/>
+              <circle cx="3591.4" cy="1059.7" r="3.5"/>
+              <circle cx="2843.8" cy="758.9" r="3.5"/>
+            </g>
+            <g class="label" font-size="11" font-weight="700" fill="#6b4319" text-anchor="middle">
+              <text x="3701.4" y="811.1">д1</text>
+              <text x="3591.4" y="1050.7">д2</text>
+              <text x="2843.8" y="749.9">д3</text>
+            </g>
+            <text x="3142" y="688" text-anchor="middle" class="label" font-size="12" font-weight="700" fill="#4a2e10">СНТ «Телефонист»</text>
+            <!-- Существующая дорога по 18 GPS-точкам осевой линии -->
+            <polyline points="-634.5,6250.3 1683.9,1458.6 1689.4,1447.3 1694.8,1436.0 1700.3,1424.8 1706.8,1411.7 1715.8,1400.1 1723.6,1390.3 1731.4,1380.5 1739.1,1370.7 1746.9,1360.9 1754.7,1351.1 1762.5,1341.4 1770.3,1331.6 1778.0,1321.8 1785.8,1312.0 1794.6,1301.3 1804.3,1291.8 1813.2,1283.0 1822.1,1274.3 1829.6,1266.6 1836.8,1257.4 1844.5,1247.5 1852.6,1237.2 1863.1,1226.3 1872.3,1217.9 1881.5,1209.5 1890.5,1201.2 1899.2,1192.7 1908.2,1184.0 1917.2,1175.3 1926.1,1166.6 1935.1,1157.9 1944.1,1149.1 1953.0,1140.4 1962.0,1131.7 1971.0,1123.0 1979.9,1114.3 1988.9,1105.6 1997.9,1096.9 2006.8,1088.2 2015.8,1079.5 2025.3,1071.3 2035.0,1063.4 2044.7,1055.4 2053.9,1046.9 2062.8,1038.1 2071.6,1029.3 2080.5,1020.5 2089.3,1011.7 2098.2,1002.8 2107.1,994.0 2115.9,985.2 2124.8,976.4 2133.6,967.6 2142.5,958.7 2151.4,949.9 2160.2,941.1 2169.1,932.3 2177.9,923.5 2186.8,914.6 2195.6,905.8 2204.5,897.0 2213.4,888.2 2222.3,879.5 2231.5,871.0 2240.9,862.7 2250.3,854.5 2259.8,846.3 2269.3,838.1 2278.7,829.9 2288.2,821.7 2297.7,813.5 2307.1,805.3 2316.5,797.0 2325.6,788.5 2334.6,779.8 2343.6,771.1 2352.5,762.3 2361.5,753.6 2370.4,744.9 2379.3,736.1 2387.9,727.0 2396.4,717.8 2404.8,708.5 2413.3,699.3 2421.7,690.0 2430.1,680.7 2438.6,671.5 2446.6,662.7 2454.9,653.5 2463.3,644.2 2471.7,634.9 2479.9,626.3 2487.3,618.0 2495.6,608.6 2504.0,599.3 2511.9,589.9 2519.0,579.8 2525.7,569.2 2532.5,558.7 2537.0,549.8 2541.4,538.7 2545.8,526.9 2550.2,515.9 2553.7,505.5 2558.0,493.8 2562.3,482.0 2566.7,470.7 2570.6,459.9 2574.9,448.3 2578.4,438.6 2581.0,426.8 2583.4,414.5 2585.6,402.2 2588.2,390.0 2590.8,377.7 2593.5,365.5 2596.1,353.3 2598.8,341.1 2601.4,328.9 2604.0,316.7 2606.7,304.4 2609.3,292.2 2611.9,280.0 2614.6,267.8 2617.2,255.6 2619.9,243.1 2622.9,230.6 2625.9,218.5 2628.8,206.3 2631.7,194.2 2634.7,182.0 2637.3,170.7 2639.5,158.8 2641.7,146.6 2644.0,134.3 2646.3,122.0 2648.5,109.7 2650.8,97.4 2653.1,85.1 2655.4,72.8 2657.6,60.5 2659.9,48.2 2662.2,35.9 2664.4,24.1 2666.0,12.6 2667.6,0.2 2669.1,-12.2 2670.7,-24.6 2672.3,-37.0 2673.8,-49.4 2675.4,-61.8 2677.0,-74.2 2678.6,-86.6 2680.1,-99.0 2681.7,-111.4 2683.3,-123.8 2684.8,-136.2 2686.4,-148.6 2688.0,-161.0 2689.6,-173.4 2691.1,-185.8 2692.7,-198.1 2694.2,-210.4 2695.7,-222.8 2697.2,-235.3 2698.7,-247.7 2700.2,-260.1 2701.7,-272.5 2703.2,-284.9 2704.7,-297.3 2706.2,-309.7 2707.7,-322.1 3345.5,-5607.0" fill="none" stroke="#000000" stroke-width="13.2" stroke-linejoin="round" stroke-linecap="round"/>
+            <polyline points="-634.5,6250.3 1683.9,1458.6 1689.4,1447.3 1694.8,1436.0 1700.3,1424.8 1706.8,1411.7 1715.8,1400.1 1723.6,1390.3 1731.4,1380.5 1739.1,1370.7 1746.9,1360.9 1754.7,1351.1 1762.5,1341.4 1770.3,1331.6 1778.0,1321.8 1785.8,1312.0 1794.6,1301.3 1804.3,1291.8 1813.2,1283.0 1822.1,1274.3 1829.6,1266.6 1836.8,1257.4 1844.5,1247.5 1852.6,1237.2 1863.1,1226.3 1872.3,1217.9 1881.5,1209.5 1890.5,1201.2 1899.2,1192.7 1908.2,1184.0 1917.2,1175.3 1926.1,1166.6 1935.1,1157.9 1944.1,1149.1 1953.0,1140.4 1962.0,1131.7 1971.0,1123.0 1979.9,1114.3 1988.9,1105.6 1997.9,1096.9 2006.8,1088.2 2015.8,1079.5 2025.3,1071.3 2035.0,1063.4 2044.7,1055.4 2053.9,1046.9 2062.8,1038.1 2071.6,1029.3 2080.5,1020.5 2089.3,1011.7 2098.2,1002.8 2107.1,994.0 2115.9,985.2 2124.8,976.4 2133.6,967.6 2142.5,958.7 2151.4,949.9 2160.2,941.1 2169.1,932.3 2177.9,923.5 2186.8,914.6 2195.6,905.8 2204.5,897.0 2213.4,888.2 2222.3,879.5 2231.5,871.0 2240.9,862.7 2250.3,854.5 2259.8,846.3 2269.3,838.1 2278.7,829.9 2288.2,821.7 2297.7,813.5 2307.1,805.3 2316.5,797.0 2325.6,788.5 2334.6,779.8 2343.6,771.1 2352.5,762.3 2361.5,753.6 2370.4,744.9 2379.3,736.1 2387.9,727.0 2396.4,717.8 2404.8,708.5 2413.3,699.3 2421.7,690.0 2430.1,680.7 2438.6,671.5 2446.6,662.7 2454.9,653.5 2463.3,644.2 2471.7,634.9 2479.9,626.3 2487.3,618.0 2495.6,608.6 2504.0,599.3 2511.9,589.9 2519.0,579.8 2525.7,569.2 2532.5,558.7 2537.0,549.8 2541.4,538.7 2545.8,526.9 2550.2,515.9 2553.7,505.5 2558.0,493.8 2562.3,482.0 2566.7,470.7 2570.6,459.9 2574.9,448.3 2578.4,438.6 2581.0,426.8 2583.4,414.5 2585.6,402.2 2588.2,390.0 2590.8,377.7 2593.5,365.5 2596.1,353.3 2598.8,341.1 2601.4,328.9 2604.0,316.7 2606.7,304.4 2609.3,292.2 2611.9,280.0 2614.6,267.8 2617.2,255.6 2619.9,243.1 2622.9,230.6 2625.9,218.5 2628.8,206.3 2631.7,194.2 2634.7,182.0 2637.3,170.7 2639.5,158.8 2641.7,146.6 2644.0,134.3 2646.3,122.0 2648.5,109.7 2650.8,97.4 2653.1,85.1 2655.4,72.8 2657.6,60.5 2659.9,48.2 2662.2,35.9 2664.4,24.1 2666.0,12.6 2667.6,0.2 2669.1,-12.2 2670.7,-24.6 2672.3,-37.0 2673.8,-49.4 2675.4,-61.8 2677.0,-74.2 2678.6,-86.6 2680.1,-99.0 2681.7,-111.4 2683.3,-123.8 2684.8,-136.2 2686.4,-148.6 2688.0,-161.0 2689.6,-173.4 2691.1,-185.8 2692.7,-198.1 2694.2,-210.4 2695.7,-222.8 2697.2,-235.3 2698.7,-247.7 2700.2,-260.1 2701.7,-272.5 2703.2,-284.9 2704.7,-297.3 2706.2,-309.7 2707.7,-322.1 3345.5,-5607.0" fill="none" stroke="#1a1a17" stroke-width="11.2" stroke-linejoin="round" stroke-linecap="round"/>
+            <!-- КП «Лама-Вилладж» — 9 GPS-точек + вершина 7а -->
+            <polygon points="727.5,455.0 608.5,800.5 971.9,860.5 1155.8,911.0 1492.9,899.3 2009.3,1004.1 2293.1,767.7 2420.0,633.5 1425.4,528.6 1425.0,532.9 1425.4,528.6" fill="#f2ede1" fill-opacity="0.92" stroke="none"/>
+            <polygon points="1139.5,145.2 852.5,90.7 727.3,454.9 2420.0,633.5 2511.4,536.9 2550.2,426.7 2288.5,412.7 2162.5,391.8 1718.3,381.7 1304.4,307.3 1145.4,243.6" fill="#f2ede1" fill-opacity="0.92" stroke="none"/>
+            <polygon points="224.5,54.0 190.9,217.4 159.7,274.6 90.6,288.0 62.5,538.6 312.2,589.8 574.6,727.9 608.5,800.5 852.4,90.7 382.6,49.2" fill="#f2ede1" fill-opacity="0.92" stroke="none"/>
+            <polygon points="2646.4,346.7 2545.4,609.1 2411.9,762.2 2255.4,902.7 2013.8,1190.2 2315.9,1256.7 2551.9,1119.3 2528.0,996.8 2536.4,858.2 2652.8,717.7 2875.4,478.6" fill="#f2ede1" fill-opacity="0.92" stroke="none"/>
+            <!-- Участки по генплану «Лама_в2.pdf» — привязка к GPS-контуру КП -->
+            <!-- Граница существующей части по генплану (пунктир, для сравнения с GPS-контуром) -->
+            <polygon points="727.5,455.0 608.5,800.5 971.9,860.5 1155.8,911.0 1492.9,899.3 2009.3,1004.1 2293.1,767.7 2420.0,633.5 1425.4,528.6 1425.0,532.9 1425.4,528.6" fill="none" stroke="#111111" stroke-width="2.0" stroke-linejoin="round"/>
+            <!-- Проектируемая часть по генплану — только контур, внутри пусто -->
+            <polygon class="parcel" data-n="122+123" points="1139.5,145.2 852.5,90.7 727.3,454.9 2420.0,633.5 2511.4,536.9 2550.2,426.7 2288.5,412.7 2162.5,391.8 1718.3,381.7 1304.4,307.3 1145.4,243.6" fill="none" stroke="#111111" stroke-width="2.0" stroke-linejoin="round"/>
+            <!-- Проектируемые участки 26 и 27 -->
+            <g fill="none" stroke="#111111" stroke-width="2.0" stroke-linejoin="round">
+            </g>
+            <g class="label" font-size="11" font-weight="700" fill="#2b2b26" text-anchor="middle">
+            </g>
+            <text x="973" y="298" text-anchor="middle" class="label" font-size="14" font-weight="700">Участок 122+123<tspan x="973" dy="1.35em" class="label-small" font-size="10" font-weight="400">50:07:0060407:122 + :123 · 64 878 м² (ЕГРН 50 200 + 14 510 = 64 710)</tspan></text>
+            <!-- Участок 50:07:0060407:21 — кадастровый контур, посажен по двум углам к проектируемой части и вершине 6 -->
+            <polygon class="parcel" data-n="21" points="224.5,54.0 190.9,217.4 159.7,274.6 90.6,288.0 62.5,538.6 312.2,589.8 574.6,727.9 608.5,800.5 852.4,90.7 382.6,49.2" fill="none" stroke="#111111" stroke-width="2.0" stroke-linejoin="round"/>
+            <text x="462" y="344" text-anchor="middle" class="label" font-size="14" font-weight="700">Участок 21<tspan x="462" dy="1.35em" class="label-small" font-size="10" font-weight="400">50:07:0060407:21 · 58 248 м² (ЕГРН 59 260)</tspan></text>
+            <!-- Участок 50:07:0060330:59 — кадастровый контур, посажен по GPS-точкам s1–s9 -->
+            <polygon class="parcel" data-n="59" points="2646.4,346.7 2545.4,609.1 2411.9,762.2 2255.4,902.7 2013.8,1190.2 2315.9,1256.7 2551.9,1119.3 2528.0,996.8 2536.4,858.2 2652.8,717.7 2875.4,478.6" fill="none" stroke="#111111" stroke-width="2.0" stroke-linejoin="round"/>
+            <text x="2365" y="1035" text-anchor="middle" class="label" font-size="14" font-weight="700">Участок 59<tspan x="2365" dy="1.35em" class="label-small" font-size="10" font-weight="400">50:07:0060330:59 · 38 388 м² (ЕГРН 38 390)</tspan></text>
+            <!-- Существующие участки по генплану -->
+            <g fill="none" stroke="#111111" stroke-width="2.0" stroke-linejoin="round">
+              <polygon class="parcel" data-n="126" points="2111.5,853.9 2117.5,797.2 2022.0,787.1 2018.0,825.4 2040.1,911.7"/>
+              <polygon class="parcel" data-n="128" points="1922.4,815.2 1920.4,834.1 2005.8,939.4 2040.1,911.7 2018.0,825.4"/>
+              <polygon class="parcel" data-n="150" points="785.6,649.5 779.5,707.8 810.6,746.2 879.1,753.4 888.6,660.3"/>
+              <polygon class="parcel" data-n="154" points="631.9,732.4 608.5,800.5 705.7,816.6 792.1,746.8 764.1,712.3 727.0,742.2"/>
+              <polygon class="parcel" data-n="155" points="659.9,651.0 631.9,732.4 727.0,742.2 764.1,712.3 767.7,677.2 767.4,672.6 765.7,668.2 762.8,664.7 759.0,662.1 754.5,660.9"/>
+              <polygon class="parcel" data-n="164" points="2167.3,606.8 2052.2,594.6 2043.9,673.0 2144.3,683.6 2148.9,683.3 2153.3,681.7 2156.9,678.8 2159.4,674.9 2160.6,670.4"/>
+              <polygon class="parcel" data-n="165" points="2117.5,797.2 2126.5,711.5 2126.3,706.9 2124.6,702.6 2121.7,699.0 2117.8,696.5 2113.4,695.3 1995.3,682.7 2022.1,787.1"/>
+              <polygon class="parcel" data-n="167" points="2052.2,594.6 1948.6,583.7 1897.3,578.3 1967.3,664.9 2043.9,673.0"/>
+              <polygon class="parcel" data-n="173" points="1712.9,688.2 1681.7,649.6 1585.0,639.5 1610.5,743.7 1706.0,753.7"/>
+              <polygon class="parcel" data-n="174" points="1585.0,639.5 1560.3,636.8 1521.8,668.0 1514.9,733.6 1610.5,743.7"/>
+              <polygon class="parcel" data-n="180" points="1364.2,522.1 1200.0,504.8 1191.5,583.1 1277.7,592.3"/>
+              <polygon class="parcel" data-n="183" points="1200.0,504.8 1074.8,491.6 1066.4,569.6 1191.5,583.1"/>
+              <polygon class="parcel" data-n="184" points="1074.8,491.6 949.6,478.4 942.8,541.5 943.0,546.1 944.7,550.4 947.6,554.0 951.5,556.6 955.9,557.8 1066.4,569.6"/>
+              <polygon class="parcel" data-n="190" points="935.1,476.8 814.5,464.1 808.2,523.1 825.7,544.5 911.8,553.7 916.5,553.4 920.8,551.8 924.4,548.9 926.9,545.0 928.1,540.5"/>
+              <polygon class="parcel" data-n="161+160+163+162+125" points="2129.5,825.4 2141.2,712.1 2174.7,677.4 2182.0,608.3 2420.0,633.5 2293.1,767.7 2213.2,834.2"/>
+              <polygon class="parcel" data-n="166+129" points="2022.0,787.1 2018.0,825.4 1922.4,815.2 1933.4,711.4 1971.9,680.2 1995.3,682.7"/>
+              <polygon class="parcel" data-n="131+127" points="1805.6,865.9 1872.5,872.9 1920.4,834.1 2005.8,939.4 1999.2,1002.0 1795.8,960.8"/>
+              <polygon class="parcel" data-n="135+132" points="1805.6,865.9 1795.8,960.8 1592.0,919.4 1599.1,851.7 1643.9,856.4 1700.0,810.8 1738.8,858.9"/>
+              <polygon class="parcel" data-n="133+130" points="1913.3,760.6 1906.4,826.4 1867.9,857.6 1746.4,844.8 1715.3,806.2 1722.2,740.6"/>
+              <polygon class="parcel" data-n="171+170" points="1817.8,750.6 1722.2,740.6 1728.2,683.6 1689.4,635.5 1775.9,565.5 1836.6,571.9"/>
+              <polygon class="parcel" data-n="168+169" points="1817.8,750.6 1836.6,571.9 1897.3,578.3 1967.3,664.9 1919.3,703.7 1913.3,760.6"/>
+              <polygon class="parcel" data-n="175+172" points="1485.7,534.9 1623.5,549.5 1775.9,565.5 1689.4,635.5 1555.7,621.5"/>
+              <polygon class="parcel" data-n="138+137+134" points="1554.4,847.0 1509.0,790.6 1514.9,733.6 1706.0,753.7 1700.0,810.8 1643.9,856.4"/>
+              <polygon class="parcel" data-n="179+178" points="1310.6,697.3 1316.7,640.2 1277.8,592.2 1364.2,522.1 1425.4,528.5 1406.3,707.3"/>
+              <polygon class="parcel" data-n="177+176" points="1406.3,707.3 1425.4,528.5 1485.7,534.9 1555.7,621.5 1507.7,660.3 1501.7,717.3"/>
+              <polygon class="parcel" data-n="142+139" points="1310.6,697.3 1501.7,717.3 1494.8,783.1 1456.3,814.2 1334.9,801.4 1303.6,762.9"/>
+              <polygon class="parcel" data-n="140+136" points="1373.5,820.4 1460.9,829.5 1509.0,790.6 1554.4,847.0 1599.1,851.7 1592.0,919.4 1492.9,899.3 1364.8,903.8"/>
+              <polygon class="parcel" data-n="144+141" points="1364.8,903.8 1176.6,910.3 1185.9,822.3 1216.3,825.5 1288.4,767.4 1327.4,815.5 1373.5,820.4"/>
+              <polygon class="parcel" data-n="146а+148+149+182" points="1097.2,747.2 1110.1,624.7 1148.6,593.5 1209.4,599.9 1195.5,731.3 1216.1,733.5 1206.5,824.5 1185.9,822.3 1176.6,910.3 1155.8,911.0 1148.7,909.0 1049.4,786.1"/>
+              <polygon class="parcel" data-n="181+143" points="1195.5,731.3 1209.4,599.9 1270.2,606.2 1301.2,644.7 1288.4,767.4 1216.3,825.5 1206.5,824.5 1216.1,733.5"/>
+              <polygon class="parcel" data-n="153+147+146" points="802.9,760.3 1049.4,786.1 1148.7,909.0 971.9,860.5 705.7,816.6 792.1,746.8"/>
+              <polygon class="parcel" data-n="185+152" points="1044.8,770.8 977.1,763.7 996.2,577.6 1064.5,584.8 1095.5,623.2 1083.2,739.6"/>
+              <polygon class="parcel" data-n="189+188" points="772.3,633.1 771.1,637.5 768.6,641.4 765.0,644.3 760.7,646.0 756.1,646.2 664.8,636.7 727.3,454.9 814.5,464.1 808.2,523.1 825.7,544.5 777.6,583.5"/>
+              <polygon class="parcel" data-n="187+186+151" points="996.2,577.6 977.1,763.7 879.1,753.4 888.6,660.3 785.6,649.5 791.7,591.2 830.2,560.0"/>
+            </g>
+            <g class="label" font-weight="700" fill="#2b2b26" text-anchor="middle">
+              <text data-kind="parcel" data-n="126" x="2065.3" y="839.3" font-size="11" stroke="#ffffff" stroke-width="2.5" paint-order="stroke">126</text>
+              <text data-kind="parcel" data-n="128" x="1988.5" y="863.4" font-size="11" stroke="#ffffff" stroke-width="2.5" paint-order="stroke">128</text>
+              <text data-kind="parcel" data-n="150" x="836.2" y="705.9" font-size="11" stroke="#ffffff" stroke-width="2.5" paint-order="stroke">150</text>
+              <text data-kind="parcel" data-n="154" x="693.8" y="780.6" font-size="11" stroke="#ffffff" stroke-width="2.5" paint-order="stroke">154</text>
+              <text data-kind="parcel" data-n="155" x="698.2" y="701.1" font-size="11" stroke="#ffffff" stroke-width="2.5" paint-order="stroke">155</text>
+              <text data-kind="parcel" data-n="164" x="2089.2" y="642.2" font-size="11" stroke="#ffffff" stroke-width="2.5" paint-order="stroke">164</text>
+              <text data-kind="parcel" data-n="165" x="2066.0" y="745.0" font-size="11" stroke="#ffffff" stroke-width="2.5" paint-order="stroke">165</text>
+              <text data-kind="parcel" data-n="167" x="2005.0" y="633.3" font-size="11" stroke="#ffffff" stroke-width="2.5" paint-order="stroke">167</text>
+              <text data-kind="parcel" data-n="173" x="1653.9" y="701.6" font-size="11" stroke="#ffffff" stroke-width="2.5" paint-order="stroke">173</text>
+              <text data-kind="parcel" data-n="174" x="1558.5" y="701.8" font-size="11" stroke="#ffffff" stroke-width="2.5" paint-order="stroke">174</text>
+              <text data-kind="parcel" data-n="180" x="1258.3" y="554.6" font-size="11" stroke="#ffffff" stroke-width="2.5" paint-order="stroke">180</text>
+              <text data-kind="parcel" data-n="183" x="1123.8" y="540.3" font-size="11" stroke="#ffffff" stroke-width="2.5" paint-order="stroke">183</text>
+              <text data-kind="parcel" data-n="184" x="1018.1" y="529.0" font-size="11" stroke="#ffffff" stroke-width="2.5" paint-order="stroke">184</text>
+              <text data-kind="parcel" data-n="190" x="872.6" y="513.9" font-size="11" stroke="#ffffff" stroke-width="2.5" paint-order="stroke">190</text>
+              <text data-kind="parcel" data-n="161+160+163+162+125" x="2251.5" y="695.1" font-size="8.5" stroke="#ffffff" stroke-width="2.5" paint-order="stroke">161+160+163+<tspan x="2251.5" dy="1.1em">162+125</tspan></text>
+              <text data-kind="parcel" data-n="166+129" x="1971.6" y="778.9" font-size="9.5" stroke="#ffffff" stroke-width="2.5" paint-order="stroke">166+129</text>
+              <text data-kind="parcel" data-n="131+127" x="1911.1" y="924.9" font-size="9.5" stroke="#ffffff" stroke-width="2.5" paint-order="stroke">131+127</text>
+              <text data-kind="parcel" data-n="135+132" x="1692.5" y="889.4" font-size="9.5" stroke="#ffffff" stroke-width="2.5" paint-order="stroke">135+132</text>
+              <text data-kind="parcel" data-n="133+130" x="1832.1" y="806.9" font-size="9.5" stroke="#ffffff" stroke-width="2.5" paint-order="stroke">133+130</text>
+              <text data-kind="parcel" data-n="171+170" x="1771.0" y="648.3" font-size="9.5" stroke="#ffffff" stroke-width="2.5" paint-order="stroke">171+170</text>
+              <text data-kind="parcel" data-n="168+169" x="1886.3" y="660.3" font-size="9.5" stroke="#ffffff" stroke-width="2.5" paint-order="stroke">168+169</text>
+              <text data-kind="parcel" data-n="175+172" x="1581.5" y="588.6" font-size="9.5" stroke="#ffffff" stroke-width="2.5" paint-order="stroke">175+172</text>
+              <text data-kind="parcel" data-n="138+137+134" x="1586.7" y="799.8" font-size="8.5" stroke="#ffffff" stroke-width="2.5" paint-order="stroke">138+137+134</text>
+              <text data-kind="parcel" data-n="179+178" x="1359.6" y="605.0" font-size="9.5" stroke="#ffffff" stroke-width="2.5" paint-order="stroke">179+178</text>
+              <text data-kind="parcel" data-n="177+176" x="1474.7" y="617.0" font-size="9.5" stroke="#ffffff" stroke-width="2.5" paint-order="stroke">177+176</text>
+              <text data-kind="parcel" data-n="142+139" x="1420.4" y="763.6" font-size="9.5" stroke="#ffffff" stroke-width="2.5" paint-order="stroke">142+139</text>
+              <text data-kind="parcel" data-n="140+136" x="1502.5" y="858.5" font-size="9.5" stroke="#ffffff" stroke-width="2.5" paint-order="stroke">140+136</text>
+              <text data-kind="parcel" data-n="144+141" x="1278.5" y="853.2" font-size="9.5" stroke="#ffffff" stroke-width="2.5" paint-order="stroke">144+141</text>
+              <text data-kind="parcel" data-n="146а+148+149+182" x="1151.4" y="772.6" font-size="8.5" stroke="#ffffff" stroke-width="2.5" paint-order="stroke">146а+148+<tspan x="1151.4" dy="1.1em">149+182</tspan></text>
+              <text data-kind="parcel" data-n="181+143" x="1248.4" y="692.0" font-size="9.5" stroke="#ffffff" stroke-width="2.5" paint-order="stroke">181+143</text>
+              <text data-kind="parcel" data-n="153+147+146" x="1024.6" y="832.4" font-size="8.5" stroke="#ffffff" stroke-width="2.5" paint-order="stroke">153+147+146</text>
+              <text data-kind="parcel" data-n="185+152" x="1041.6" y="645.7" font-size="9.5" stroke="#ffffff" stroke-width="2.5" paint-order="stroke">185+152</text>
+              <text data-kind="parcel" data-n="189+188" x="756.4" y="535.9" font-size="9.5" stroke="#ffffff" stroke-width="2.5" paint-order="stroke">189+188</text>
+              <text data-kind="parcel" data-n="187+186+151" x="934.5" y="632.1" font-size="8.5" stroke="#ffffff" stroke-width="2.5" paint-order="stroke">187+186+151</text>
+            </g>
+            <text x="3027" y="1299" text-anchor="end" class="label" font-size="16" font-weight="700" stroke="#f2ede1" stroke-width="3" paint-order="stroke">КП «ЛАМА-ВИЛЛАДЖ»<tspan x="3027" dy="1.3em" class="label-small" font-size="11" font-weight="400">участки по генплану «Лама_в2.pdf» · 34 шт.</tspan></text>
+            <g transform="translate(3017,46)">
+      <circle r="22" fill="#f2ede1" stroke="#2b2b26" stroke-width="1.5"/>
+      <polygon points="0,-15 5,4 0,-2 -5,4" fill="#2b2b26"/>
+      <text x="0" y="-23" text-anchor="middle" font-family="Oswald" font-size="12" font-weight="700" fill="#2b2b26">С</text>
+    </g>
+            <g transform="translate(45,1339)">
+      <line x1="0" y1="0" x2="250" y2="0" stroke="#2b2b26" stroke-width="2"/>
+      <line x1="0" y1="-4" x2="0" y2="4" stroke="#2b2b26" stroke-width="2"/>
+      <line x1="125" y1="-4" x2="125" y2="4" stroke="#2b2b26" stroke-width="2"/>
+      <line x1="250" y1="-4" x2="250" y2="4" stroke="#2b2b26" stroke-width="2"/>
+      <text x="0" y="17" font-size="10" font-family="PT Sans" fill="#4a4536">0</text>
+      <text x="218" y="17" font-size="10" font-family="PT Sans" fill="#4a4536">100 м</text>
+    </g>
+            <rect x="2" y="2" width="3063" height="1365" fill="none" stroke="#2b2b26" stroke-width="4"/>
+        </svg>
+</div>
+<div class="finder">
+  <input id="find" type="text" inputmode="numeric" placeholder="№ участка">
+  <button type="button" id="find-btn">Найти</button>
+  <button type="button" id="legend-btn" title="Условные обозначения">i</button>
+</div>
+<div class="legend" id="legend">
+  <h2>Условные обозначения</h2>
+  <div class="legend-row"><span class="swatch" style="background:#fff;border-color:#111"></span>Участки по генплану «Лама_в2.pdf» (существующие)</div>
+  <div class="legend-row"><span class="swatch" style="background:#fff;border-color:#111"></span>Участки 21, 122+123, 59 — кадастровые контуры</div>
+  <div class="legend-row"><span class="swatch" style="background:#1a1a17;border-color:#1a1a17"></span>Существующая дорога</div>
+  <div class="legend-row"><span class="swatch line" style="border-top-color:#3f5b3d"></span>Кромка леса</div>
+  <div class="legend-row"><span class="swatch" style="background:#e79a2b;opacity:.8;border-color:#8a5a25"></span>СНТ «Телефонист»</div>
+  <div class="legend-row"><span class="swatch" style="background:#3d7ea6;border-color:#8fb8cc"></span>Река Лама</div>
+  <div class="legend-row"><span class="swatch" style="background:#46603f;border-color:#3f5b3d"></span>Лес</div>
+  <div class="legend-row"><span class="swatch" style="background:#d9cf9e;opacity:.55;border-color:#8c8368"></span>Поле</div>
+  <div class="foot">Щипок / колесо — масштаб, перетаскивание — сдвиг, двойной тап — приблизить, тап по участку — сведения. Линии и номера участков масштабируются вместе с планом. Север — вверх.</div>
+</div>
+<div class="pop" id="pop"><button class="x" id="pop-x" type="button">×</button><b id="pop-t"></b><span id="pop-s"></span></div>
+<div class="zoom" id="zoom">1.0×</div>
+<div class="ctl">
+  <button type="button" data-act="in" title="Приблизить">+</button>
+  <button type="button" data-act="out" title="Отдалить">−</button>
+  <button type="button" data-act="reset" title="Весь план">⌂</button>
+</div>
+<script>
+/* LamaMap — движок мини-карты: масштаб и сдвиг через viewBox, подписи закреплены за участками
+   и держат постоянный размер на экране, тонкие линии держат постоянную толщину. */
+function LamaMap(opts) {
+  var svg = opts.svg, host = opts.host, W = opts.W, H = opts.H;
+  var onZoom = opts.onZoom || function () {};
+  var onPick = opts.onPick || function () {};
+  // labelMode: 'map' — подписи масштабируются вместе с планом, как часть участка (по умолчанию);
+  //            'screen' — подписи держат постоянный размер на экране и появляются при приближении
+  var LABEL_MODE = opts.labelMode || 'map';
+  // lineMode: 'map' — толщина линий задана в единицах плана и меняется вместе с ним (по умолчанию);
+  //           'screen' — тонкие линии держат постоянную толщину на экране
+  var LINE_MODE = opts.lineMode || 'map';
+  var LABEL_SHOW_PPU = opts.labelShowPpu || 0.42;   // (только для 'screen') подписи участков появляются, когда 100 ед. плана ≥ 42 px
+  var SUB_SHOW_PPU = opts.subShowPpu || 0.28;        // (только для 'screen') вторые строки больших подписей — чуть раньше
+  var vb = { x: 0, y: 0, w: W, h: H };
+  var MINW = W / 80, MAXW = W * 4;
+
+  // тонкие линии: контуры участков, кромки, связки; толстые (дорога, река) масштабируются как есть
+  var thin = [];
+  Array.prototype.forEach.call(svg.querySelectorAll('polygon,polyline,line,path'), function (el) {
+    var swAttr = el.getAttribute('stroke-width');
+    var p = el.parentNode;
+    if (swAttr === null && p && p.getAttribute) swAttr = p.getAttribute('stroke-width');
+    var sw = parseFloat(swAttr || '0');
+    if (sw > 0 && sw <= 6 && el.tagName !== 'circle') thin.push({ el: el, px: 0.6 * sw + 0.4 });
+  });
+  // подписи: базовый размер в px экрана; у участков — показ только с определённого приближения
+  var texts = [];
+  Array.prototype.forEach.call(svg.querySelectorAll('text,tspan'), function (el) {
+    var fs = parseFloat(el.getAttribute('font-size') || '0');
+    if (!fs) return;
+    var owner = el.tagName === 'tspan' ? el.parentNode : el;
+    var kind = owner.getAttribute('data-kind') || 'fixed';
+    // вторая строка больших подписей (кадастровый номер, площадь) — длинная, показывается только при приближении
+    if (kind === 'fixed' && el.tagName === 'tspan' && (el.getAttribute('class') || '').indexOf('label-small') >= 0) kind = 'sub';
+    var halo = parseFloat(el.getAttribute('stroke-width') || '0');
+    texts.push({ el: el, owner: owner, kind: kind, px: kind === 'parcel' ? 12 : Math.min(18, fs * 1.05), halo: halo });
+  });
+
+  function box() { return svg.getBoundingClientRect(); }
+  function ppu() { return box().width / vb.w; }
+  function apply() {
+    var r = box();
+    if (r.width && r.height) vb.h = vb.w * r.height / r.width;
+    svg.setAttribute('viewBox', vb.x + ' ' + vb.y + ' ' + vb.w + ' ' + vb.h);
+    var q = ppu(), k = W / vb.w;
+    if (LINE_MODE === 'screen') {
+      for (var i = 0; i < thin.length; i++) thin[i].el.setAttribute('stroke-width', (thin[i].px / q).toFixed(3));
+    }
+    // в режиме 'map' линии не трогаем: толщина задана в единицах плана и масштабируется с ним
+    if (LABEL_MODE === 'screen') {
+      var showParcel = q >= LABEL_SHOW_PPU;
+      for (var j = 0; j < texts.length; j++) {
+        var tx = texts[j];
+        tx.el.setAttribute('font-size', (tx.px / q).toFixed(3));
+        if (tx.halo) tx.el.setAttribute('stroke-width', (tx.halo / q).toFixed(3));
+        if (tx.kind === 'parcel') tx.owner.style.display = showParcel ? '' : 'none';
+        else if (tx.kind === 'sub') tx.el.style.display = q >= SUB_SHOW_PPU ? '' : 'none';
+      }
+    }
+    // в режиме 'map' подписи не трогаем: их размер задан в единицах плана и меняется вместе с ним
+    onZoom(k, q);
+  }
+  function fit() {
+    var r = box(), asp = (r.width && r.height) ? r.width / r.height : W / H;
+    var nw, nh;
+    if (W / H > asp) { nw = W * 1.02; nh = nw / asp; } else { nh = H * 1.02; nw = nh * asp; }
+    vb = { x: (W - nw) / 2, y: (H - nh) / 2, w: nw, h: nh };
+    apply();
+  }
+  function zoomAt(factor, cx, cy) {
+    var r = box();
+    var px = (cx - r.left) / r.width, py = (cy - r.top) / r.height;
+    var sx = vb.x + px * vb.w, sy = vb.y + py * vb.h;
+    var nw = Math.min(MAXW, Math.max(MINW, vb.w / factor));
+    var nh = nw * r.height / r.width;
+    vb = { x: sx - px * nw, y: sy - py * nh, w: nw, h: nh };
+    apply();
+  }
+  function panBy(dx, dy) {
+    var r = box();
+    vb.x -= dx / r.width * vb.w; vb.y -= dy / r.height * vb.h;
+    apply();
+  }
+  svg.addEventListener('wheel', function (e) {
+    e.preventDefault();
+    zoomAt(Math.exp(-e.deltaY * 0.0018), e.clientX, e.clientY);
+  }, { passive: false });
+  svg.addEventListener('dblclick', function (e) { e.preventDefault(); zoomAt(2, e.clientX, e.clientY); });
+
+  var ptrs = {}, lastMid = null, lastDist = 0, lastTap = 0, moved = 0, downAt = null;
+  svg.addEventListener('pointerdown', function (e) {
+    try { svg.setPointerCapture(e.pointerId); } catch (err) {}
+    ptrs[e.pointerId] = { x: e.clientX, y: e.clientY };
+    var ids = Object.keys(ptrs);
+    moved = 0; downAt = { x: e.clientX, y: e.clientY, t: Date.now(), target: e.target };
+    if (ids.length === 1 && e.pointerType === 'touch') {
+      var now = Date.now();
+      if (now - lastTap < 300) { zoomAt(2, e.clientX, e.clientY); lastTap = 0; } else lastTap = now;
+    }
+    if (ids.length === 2) {
+      var a = ptrs[ids[0]], b = ptrs[ids[1]];
+      lastDist = Math.hypot(a.x - b.x, a.y - b.y);
+      lastMid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    }
+    svg.classList.add('dragging');
+    e.preventDefault();
+  });
+  svg.addEventListener('pointermove', function (e) {
+    if (!ptrs[e.pointerId]) return;
+    var prev = ptrs[e.pointerId];
+    ptrs[e.pointerId] = { x: e.clientX, y: e.clientY };
+    moved += Math.abs(e.clientX - prev.x) + Math.abs(e.clientY - prev.y);
+    var ids = Object.keys(ptrs);
+    if (ids.length === 1) {
+      panBy(e.clientX - prev.x, e.clientY - prev.y);
+    } else if (ids.length >= 2) {
+      var a = ptrs[ids[0]], b = ptrs[ids[1]];
+      var dist = Math.hypot(a.x - b.x, a.y - b.y);
+      var mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+      if (lastDist > 0) zoomAt(dist / lastDist, mid.x, mid.y);
+      if (lastMid) panBy(mid.x - lastMid.x, mid.y - lastMid.y);
+      lastDist = dist; lastMid = mid;
+    }
+    e.preventDefault();
+  });
+  function up(e) {
+    if (ptrs[e.pointerId] && downAt && moved < 6 && Object.keys(ptrs).length === 1) {
+      // клик/тап без сдвига — выбор участка
+      var t = downAt.target;
+      while (t && t !== svg && !(t.getAttribute && t.getAttribute('data-n'))) t = t.parentNode;
+      onPick(t && t !== svg ? t.getAttribute('data-n') : null, e.clientX, e.clientY);
+    }
+    delete ptrs[e.pointerId];
+    var ids = Object.keys(ptrs);
+    if (ids.length < 2) { lastDist = 0; lastMid = null; }
+    if (ids.length === 0) svg.classList.remove('dragging');
+  }
+  svg.addEventListener('pointerup', up);
+  svg.addEventListener('pointercancel', up);
+  window.addEventListener('resize', function () { apply(); });
+
+  fit();
+  return {
+    zoomIn: function () { var r = box(); zoomAt(1.6, r.left + r.width / 2, r.top + r.height / 2); },
+    zoomOut: function () { var r = box(); zoomAt(1 / 1.6, r.left + r.width / 2, r.top + r.height / 2); },
+    fit: fit, apply: apply,
+    zoomTo: function (n, target) {
+      // центрируем участок по имени
+      var el = svg.querySelector('[data-n="' + n + '"]');
+      if (!el) return;
+      var bb = el.getBBox();
+      var r = box();
+      var nw = Math.max(MINW, Math.max(bb.width, bb.height * r.width / r.height) * (target || 2.5));
+      var nh = nw * r.height / r.width;
+      vb = { x: bb.x + bb.width / 2 - nw / 2, y: bb.y + bb.height / 2 - nh / 2, w: nw, h: nh };
+      apply();
+    }
+  };
+}
+
+(function () {
+  var INFO = {"126": {"area": 1329, "parts": ["126"]}, "128": {"area": 1314, "parts": ["128"]}, "150": {"area": 1454, "parts": ["150"]}, "154": {"area": 1707, "parts": ["154"]}, "155": {"area": 1505, "parts": ["155"]}, "164": {"area": 1452, "parts": ["164"]}, "165": {"area": 1846, "parts": ["165"]}, "167": {"area": 1467, "parts": ["167"]}, "173": {"area": 1746, "parts": ["173"]}, "174": {"area": 1161, "parts": ["174"]}, "180": {"area": 1588, "parts": ["180"]}, "183": {"area": 1584, "parts": ["183"]}, "184": {"area": 1572, "parts": ["184"]}, "190": {"area": 1490, "parts": ["190"]}, "161+160+163+162+125": {"area": 6017, "parts": ["161", "160", "163", "162", "125"]}, "166+129": {"area": 1743, "parts": ["166", "129"]}, "131+127": {"area": 3567, "parts": ["131", "127"]}, "135+132": {"area": 3077, "parts": ["135", "132"]}, "133+130": {"area": 2913, "parts": ["133", "130"]}, "171+170": {"area": 2970, "parts": ["171", "170"]}, "168+169": {"area": 2968, "parts": ["168", "169"]}, "175+172": {"area": 2685, "parts": ["175", "172"]}, "138+137+134": {"area": 2919, "parts": ["138", "137", "134"]}, "179+178": {"area": 2979, "parts": ["179", "178"]}, "177+176": {"area": 2961, "parts": ["177", "176"]}, "142+139": {"area": 2910, "parts": ["142", "139"]}, "140+136": {"area": 2910, "parts": ["140", "136"]}, "144+141": {"area": 3055, "parts": ["144", "141"]}, "146а+148+149+182": {"area": 4958, "parts": ["146а", "148", "149", "182"]}, "181+143": {"area": 2695, "parts": ["181", "143"]}, "153+147+146": {"area": 4672, "parts": ["153", "147", "146"]}, "185+152": {"area": 2894, "parts": ["185", "152"]}, "189+188": {"area": 3029, "parts": ["189", "188"]}, "187+186+151": {"area": 4405, "parts": ["187", "186", "151"]}, "21": {"area": 58248, "cad": "50:07:0060407:21", "egrn": 59260}, "59": {"area": 38388, "cad": "50:07:0060330:59", "egrn": 38390}, "122+123": {"area": 64878, "cad": "50:07:0060407:122, :123", "egrn": 64710}};
+  var svg = document.getElementById('map-svg');
+  var pop = document.getElementById('pop'), popT = document.getElementById('pop-t'), popS = document.getElementById('pop-s');
+  var sel = null;
+  function fmt(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
+  function pick(n) {
+    if (sel) sel.classList.remove('sel');
+    sel = null;
+    if (!n) { pop.classList.remove('open'); return; }
+    var el = svg.querySelector('polygon[data-n="' + n + '"]');
+    if (el) { el.classList.add('sel'); sel = el; }
+    var inf = INFO[n] || {};
+    popT.textContent = 'Участок ' + n;
+    var s = inf.area ? fmt(inf.area) + ' м²' : '';
+    if (inf.cad) s += ' · ' + inf.cad + (inf.egrn ? ' (ЕГРН ' + fmt(inf.egrn) + ' м²)' : '');
+    else if (inf.parts && inf.parts.length > 1) s += ' · объединён из ' + inf.parts.join(', ');
+    popS.textContent = s;
+    pop.classList.add('open');
+  }
+  var m = LamaMap({ svg: svg, host: document.getElementById('map'), W: 3067, H: 1369,
+    onZoom: function (k) { document.getElementById('zoom').textContent = (k >= 10 ? k.toFixed(0) : k.toFixed(1)) + '×'; },
+    onPick: pick });
+  document.querySelector('.ctl').addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b) return;
+    var act = b.getAttribute('data-act');
+    if (act === 'in') m.zoomIn(); else if (act === 'out') m.zoomOut(); else if (act === 'reset') { m.fit(); pick(null); }
+  });
+  document.getElementById('pop-x').addEventListener('click', function () { pick(null); });
+  document.getElementById('legend-btn').addEventListener('click', function () { document.getElementById('legend').classList.toggle('open'); });
+  function find() {
+    var q = document.getElementById('find').value.trim().replace(/\s+/g, '');
+    if (!q) return;
+    var names = Object.keys(INFO), hit = null;
+    for (var i = 0; i < names.length && !hit; i++) if (names[i] === q) hit = names[i];
+    for (var j = 0; j < names.length && !hit; j++) if (names[j].split('+').indexOf(q) >= 0) hit = names[j];
+    if (!hit) { popT.textContent = 'Участок ' + q; popS.textContent = 'нет на плане'; pop.classList.add('open'); return; }
+    m.zoomTo(hit, 2.5); pick(hit);
+    document.getElementById('find').blur();
+  }
+  document.getElementById('find-btn').addEventListener('click', find);
+  document.getElementById('find').addEventListener('keydown', function (e) { if (e.key === 'Enter') find(); });
+})();
+</script>
+</body>
+</html>
